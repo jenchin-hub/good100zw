@@ -215,7 +215,7 @@ const caps=(async()=>{
   try{
     if(!window.claude||!window.claude.use)return;
     [db,user]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
-    isAdmin=!!(user&&((await user.isOwner())||(await user.canEdit())));
+    isAdmin=!!(user&&(await user.isOwner()));
     if(isAdmin&&db)$("adminBtn").hidden=false;
   }catch(e){db=null;}
 })();
