@@ -149,6 +149,9 @@ body{color:var(--white)}
 .sheet .check input{accent-color:var(--paper)}
 .sheet .primary{background:var(--paper);color:var(--white);border-radius:16px;letter-spacing:.1em;margin-top:6px;min-height:56px}
 .sheet .err{border:1px solid var(--red)}
+.who{text-align:right;font-size:13px;line-height:1.5;color:var(--soft);min-width:0}
+.who span{display:block;overflow-wrap:anywhere}
+.who .link{padding:2px 0;font-size:15px}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:54px}
 .login{max-width:380px;margin:24px auto 0}
@@ -163,7 +166,7 @@ input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--w
 <div class="wrap" id="wrap">
   <header class="top">
     <h1 class="brand">谷吉爸紫微<small id="tagline"></small></h1>
-    <button class="link" id="logoutBtn" hidden>登出</button>
+    <div class="who" id="whoBox" hidden><span id="who"></span><button class="link" id="logoutBtn">登出</button></div>
   </header>
 
   <!-- 填寫頁 -->
@@ -468,8 +471,8 @@ document.querySelectorAll("#cta [data-want]").forEach(b=>b.addEventListener("cli
 /* ---------- 後台 ---------- */
 let rows=[];
 const ADMIN=location.pathname.replace(/\/$/,"")==="/admin";
-function needLogin(){$("loginForm").hidden=false;$("adminBody").hidden=true;$("logoutBtn").hidden=true;}
-function signedIn(){$("loginForm").hidden=true;$("adminBody").hidden=false;$("logoutBtn").hidden=false;loadLeads();}
+function needLogin(){$("loginForm").hidden=false;$("adminBody").hidden=true;$("whoBox").hidden=true;$("who").textContent="";}
+function signedIn(j){$("loginForm").hidden=true;$("adminBody").hidden=false;$("whoBox").hidden=false;$("who").textContent=j&&j.email?j.email+" 登入中":"";loadLeads();}
 async function loadLeads(){
   $("count").textContent="名單載入中…";
   try{const j=await api("/api/leads");rows=j.leads||[];$("adminErr").hidden=true;renderLeads();}
@@ -478,7 +481,7 @@ async function loadLeads(){
 }
 $("loginForm").addEventListener("submit",async ev=>{
   ev.preventDefault();const er=$("loginErr");er.hidden=true;
-  try{await api("/api/admin",{method:"POST",body:JSON.stringify({action:"login",email:$("lEmail").value,password:$("lPass").value})});$("lPass").value="";signedIn();}
+  try{const j=await api("/api/admin",{method:"POST",body:JSON.stringify({action:"login",email:$("lEmail").value,password:$("lPass").value})});$("lPass").value="";signedIn(j);}
   catch(e){er.textContent=e.status===401?"Email 或密碼不對，請再確認。":"登入沒有成功，請檢查網路後再試一次。";er.hidden=false;}
 });
 $("logoutBtn").addEventListener("click",async()=>{try{await api("/api/admin",{method:"POST",body:JSON.stringify({action:"logout"})});}catch(e){}rows=[];$("leads").replaceChildren();show("vAdmin");needLogin();});
