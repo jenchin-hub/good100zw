@@ -8,9 +8,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --paper:#F6F4FA; --ink:#241A3D; --night:#2B1F4A; --purple:#5B3A91;
-  --gold:#A67C1E; --goldlight:#E8D49A; --red:#B03A48; --blue:#2F6690;
-  --muted:#6F6A80; --line:#D9D3E6; --white:#fff;
+  --paper:#1D4ABF; --ink:#14224A; --night:#0F2A78; --purple:#1D4ABF;
+  --gold:#FFC857; --goldlight:#C7D7FF; --red:#C2334A; --blue:#0B8068;
+  --muted:#5B6787; --line:#C9D5F2; --white:#fff; --soft:rgba(255,255,255,.86);
   --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
 }
@@ -105,6 +105,21 @@ input:focus,select:focus{border-color:var(--purple)}
 .acts select{width:auto;min-height:40px;padding:6px 10px}
 .acts button{min-height:40px;padding:6px 12px}
 textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
+
+/* 藍底白字：直接放在藍色背景上的文字用白色，白色區塊內用深色 */
+body{color:var(--white)}
+.brand{color:var(--white);letter-spacing:.12em}
+.brand small,.check,.legend,.ctrl .sum{color:var(--soft)}
+.link{color:var(--white)}
+.panel,.lead,.note,.seg,.cell,.ghost,.step button,input[type=text],input[type=tel],input[type=email],select,textarea{color:var(--ink)}
+.primary{background:var(--white);color:var(--paper)}
+.ghost{border-color:var(--white)}
+.ghost.on{background:var(--night);color:var(--white);border-color:var(--white)}
+.check input{accent-color:var(--night)}
+.err{background:var(--white);color:var(--red);padding:8px 12px;border-radius:6px}
+.chart{border-color:var(--white)}
+.lead .link,.panel .link{color:var(--purple)}
+.lead .ghost{border-color:var(--night)}
 </style>
 </head>
 <body>
@@ -147,7 +162,7 @@ textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
       <p>想更深入了解？告訴谷吉爸您需要什麼：</p>
       <button class="ghost" data-want="detail">我想要詳細命盤解析</button>
       <button class="ghost" data-want="yearly">我想看流年分析</button>
-      <p class="small" id="wantMsg" style="font-weight:400;font-size:14px;color:var(--muted)"></p>
+      <p class="small" id="wantMsg" style="font-weight:400;font-size:14px;color:var(--soft)"></p>
     </div>
     <p><button class="link" id="backBtn">回到填寫頁</button></p>
   </section>
@@ -297,11 +312,11 @@ function showChart(rec,chart,saved,fromAdmin){
     h("label",null,h("input",{type:"radio",name:"mode",value:m[0],checked:m[0]==="natal",onchange:()=>{view.mode=m[0];follow();draw();}}),m[1])));
   const prev=h("button",{type:"button",id:"prevBtn",onclick:()=>stepBy(-1)},"◀"),next=h("button",{type:"button",id:"nextBtn",onclick:()=>stepBy(1)},"▶");
   box.append(h("div",{class:"ctrl"},seg,h("div",{class:"step",id:"stepRow"},prev,h("strong",{id:"stepLabel","aria-live":"polite"}),next),
-    h("label",{class:"check",style:"color:var(--ink);align-items:center"},h("input",{type:"checkbox",checked:true,onchange:e=>{view.birth=e.target.checked;draw();}}),h("span",null,"顯示生年四化")),
+    h("label",{class:"check",style:"color:var(--white);align-items:center"},h("input",{type:"checkbox",checked:true,onchange:e=>{view.birth=e.target.checked;draw();}}),h("span",null,"顯示生年四化")),
     h("p",{class:"sum",id:"sum"})),
    h("div",{id:"gridHost"}),
    h("p",{class:"legend"},h("span",null,h("i",{style:"background:#FBDDB8"}),"點選的宮位"),h("span",null,h("i",{style:"background:#F0F2B4"}),"三方與對宮"),
-     h("span",null,h("b",{style:"background:var(--red)"}),"生年四化"),h("span",null,h("b",{style:"box-shadow:inset 0 0 0 1px var(--purple)"}),"大限四化"),h("span",null,h("b",{style:"background:var(--blue);border-radius:50%"}),"流年四化")));
+     h("span",null,h("b",{style:"background:var(--red)"}),"生年四化"),h("span",null,h("b",{style:"background:var(--white);box-shadow:inset 0 0 0 2px var(--white),inset 0 0 0 4px var(--purple)"}),"大限四化"),h("span",null,h("b",{style:"background:var(--blue);border-radius:50%"}),"流年四化")));
   draw();
   renderReading(chart);
   show("vChart");
