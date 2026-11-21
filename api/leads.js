@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       leadPaths.forEach((p, i) => {
         if (!leads[i]) return;
         const id = p.slice(6, -5);
-        map.set(id, { id, status: STATUS[0], wantDetail: false, wantYearly: false, ...leads[i] });
+        map.set(id, { id, status: STATUS[0], wantDetail: false, wantYearly: false, wantMonthly: false, ...leads[i] });
       });
       updPaths.forEach((p, i) => { // 路徑以時間開頭，排序後依序套用
         const row = map.get(p.split("/")[1]);
@@ -32,6 +32,7 @@ export default async function handler(req, res) {
         if (STATUS.includes(u.status)) row.status = u.status;
         if (u.wantDetail === true) row.wantDetail = true;
         if (u.wantYearly === true) row.wantYearly = true;
+        if (u.wantMonthly === true) row.wantMonthly = true;
       });
       const rows = [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       return res.status(200).json({ leads: rows });

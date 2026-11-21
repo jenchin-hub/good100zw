@@ -20,7 +20,7 @@ http.createServer(async (req, res) => {
       req.query = Object.fromEntries(url.searchParams);
       return await mod.default(req, res);
     }
-    let p = url.pathname === "/" || url.pathname === "/admin" ? "/index.html" : url.pathname;
+    let p = url.pathname === "/" || url.pathname === "/admin" ? "/index.html" : url.pathname === "/privacy" ? "/privacy.html" : url.pathname;
     const f = path.join(process.cwd(), "public", path.normalize(p));
     const data = await fs.readFile(f);
     res.setHeader("Content-Type", TYPES[path.extname(f)] || "application/octet-stream");

@@ -138,7 +138,7 @@ body{color:var(--white)}
 @keyframes glow{to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.art .ln,.art .hl{animation:none;stroke-dashoffset:0;opacity:1}}
 .hero .primary{width:100%;border-radius:16px;letter-spacing:.1em}
-.sheet{background:#F2F4F8;color:var(--ink);margin:0 -16px -56px;padding:32px 22px 72px;border-radius:32px 32px 0 0}
+.sheet{background:#F2F4F8;color:var(--ink);margin:0 -16px;padding:32px 22px 40px;border-radius:32px}
 .steps{list-style:none;margin:0 0 32px;padding:0 0 26px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;border-bottom:1px solid var(--line);font-size:13px;line-height:1.5;color:var(--muted)}
 .steps b{display:block;font-weight:300;font-size:30px;line-height:1.3;color:var(--paper)}
 .sheet form{gap:16px}
@@ -156,6 +156,42 @@ body{color:var(--white)}
 .who{text-align:right;font-size:13px;line-height:1.5;color:var(--soft);min-width:0}
 .who span{display:block;overflow-wrap:anywhere}
 .who .link{padding:2px 0;font-size:15px}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+.nav{display:flex;flex-wrap:wrap;gap:6px 18px;margin:-6px 0 4px;font-size:14px}
+.nav a{color:var(--soft);text-decoration:none;padding:8px 0;border-bottom:1px solid transparent}
+.nav a:hover,.nav a:focus-visible{color:var(--white);border-bottom-color:var(--white)}
+.band{padding:56px 6px;scroll-margin-top:8px}
+.band h2{font-weight:300;font-size:clamp(26px,7.6vw,34px);line-height:1.4;letter-spacing:.06em;margin:0 0 20px}
+.band h3{font-size:18px;font-weight:500;letter-spacing:.05em;margin:0 0 6px}
+.band p{margin:0 0 14px;max-width:34em}
+.band .lede{color:var(--soft)}
+.band.pale{background:#F2F4F8;color:var(--ink);margin:0 -16px;padding:48px 22px;border-radius:32px}
+.band.pale a{color:var(--paper)}
+.terms{margin:26px 0 0}
+.terms div{padding:16px 0;border-top:1px solid rgba(255,255,255,.28)}
+.terms dt{font-size:18px;font-weight:500;letter-spacing:.08em;margin-bottom:4px}
+.terms dd{margin:0;color:var(--soft);max-width:34em}
+.portrait{display:block;width:100%;max-width:340px;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:24px;margin:0 0 24px}
+.band blockquote{margin:0 0 20px;padding:0 0 0 16px;border-left:3px solid var(--paper);font-size:19px;line-height:1.7;font-weight:500;color:var(--night)}
+.pillars{display:grid;gap:0;margin-top:26px}
+.pillars div{padding:18px 0;border-top:1px solid var(--line)}
+.pillars p{margin:0;color:var(--muted)}
+.card{background:var(--white);color:var(--ink);border-radius:24px;padding:24px 22px;margin-bottom:14px}
+.card p{margin:0}
+.card .for{color:var(--paper);font-size:14px;margin-bottom:10px}
+.band .how{color:var(--soft);margin:22px 0 14px}
+.band>.primary{width:100%;border-radius:16px;letter-spacing:.1em}
+.info{display:grid;grid-template-columns:auto 1fr;gap:10px 16px;margin:18px 0}
+.info dt{color:var(--muted);white-space:nowrap}
+.info dd{margin:0}
+.map{display:block;width:100%;height:260px;border:0;border-radius:20px;background:var(--line);margin:8px 0 12px}
+.maplink{display:inline-block;text-decoration:none;border-color:var(--paper);border-radius:14px;padding:12px 18px}
+#place h3{margin-top:28px}
+.foot2{padding:36px 6px 0;font-size:13px;color:var(--soft)}
+.foot2 p{margin:0 0 8px}
+.foot2 a,.check a{color:inherit}
+.sheet .check a{color:var(--paper)}
 .hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
 input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:54px}
 .login{max-width:380px;margin:24px auto 0}
@@ -172,6 +208,9 @@ input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--w
     <h1 class="brand">谷吉爸紫微<small id="tagline"></small></h1>
     <div class="who" id="whoBox" hidden><span id="who"></span><button class="link" id="logoutBtn">登出</button></div>
   </header>
+  <nav class="nav" id="nav" aria-label="頁面區塊">
+    <a href="#learn">認識紫微</a><a href="#about">谷吉爸老師</a><a href="#services">服務項目</a><a href="#place">永定五號</a>
+  </nav>
 
   <!-- 填寫頁 -->
   <section id="vForm">
@@ -202,12 +241,80 @@ input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--w
         <label class="f"><span>手機</span><input type="tel" id="phone" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="0912345678" required></label>
         <label class="f"><span>Email</span><input type="email" id="email" autocomplete="email" maxlength="80" placeholder="name@example.com" required></label>
         <label class="f"><span>LINE ID（選填）</span><input type="text" id="line" maxlength="30" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="例如 brian_0912"></label>
-        <label class="check"><input type="checkbox" id="agree"><span>我同意谷吉爸紫微蒐集以上資料，用於排出命盤，以及後續與我聯絡命盤解析服務。</span></label>
+        <label class="check"><input type="checkbox" id="agree"><span>我同意谷吉爸紫微蒐集以上資料，用於排出命盤，以及後續與我聯絡命盤解析服務。<a href="/privacy" target="_blank" rel="noopener">隱私權政策</a></span></label>
         <div class="hp" aria-hidden="true"><label>請勿填寫這一欄<input type="text" id="hp" tabindex="-1" autocomplete="off"></label></div>
         <p class="err" id="err" role="alert" hidden></p>
         <button class="primary" id="submit">看我的命盤</button>
       </form>
     </div>
+
+    <section class="band" id="learn" aria-labelledby="learnH">
+      <h2 id="learnH">認識紫微斗數</h2>
+      <p class="lede">紫微斗數用出生的年、月、日、時排出一張命盤，把人生分成十二個面向來看。它不是告訴你結果，而是幫你看清自己的結構。</p>
+      <dl class="terms">
+        <div><dt>十二宮</dt><dd>命宮、兄弟、夫妻、子女、財帛、疾厄、遷移、交友、事業、田宅、福德、父母。每一宮代表生活的一個面向。</dd></div>
+        <div><dt>十四主星</dt><dd>紫微、天機、太陽、武曲等十四顆主星，落在哪一宮，就為那個面向定下基調。</dd></div>
+        <div><dt>四化</dt><dd>化祿、化權、化科、化忌。同一顆星因為四化不同，表現會差很多，是看運勢起伏的關鍵。</dd></div>
+        <div><dt>三方四正</dt><dd>看一個宮位，要連同它的三方與對宮一起看。單看一宮不論命，這是解盤最重要的原則。</dd></div>
+        <div><dt>大限與流年</dt><dd>大限看十年的大方向，流年看當年的重點。先懂本命，再看時間怎麼走。</dd></div>
+      </dl>
+    </section>
+
+    <section class="band pale" id="about" aria-labelledby="aboutH">
+      <h2 id="aboutH">認識谷吉爸老師</h2>
+      <img class="portrait" src="/img/teacher.jpg" width="800" height="1000" alt="谷吉爸老師在講座中分享" loading="lazy">
+      <blockquote>紫微斗數不只是預測未來，更是一份讓你更懂自己與家人的使用說明書。</blockquote>
+      <p>谷吉爸老師長期透過《谷吉爸紫微漫談》分享命理知識與生活觀察，把深奧的星曜邏輯轉成貼近日常的實用建議。</p>
+      <p>不論是職涯轉換、親子溝通，還是個人成長規劃，都能從命盤結構找到清楚的方向與行動節奏。老師專注於命盤解析、大限流年規劃與親子成長議題。</p>
+      <div class="pillars">
+        <div><h3>不迷信、重邏輯</h3><p>拆解星曜與宮位的互動，客觀分析個人特質與潛在優勢。</p></div>
+        <div><h3>看懂趨勢、提前佈局</h3><p>從大限與流年的變化，在關鍵轉折點做出更從容的選擇。</p></div>
+        <div><h3>貼近生活的溫柔引導</h3><p>把命理分析落實到日常溝通、家庭關係與自我成長。</p></div>
+      </div>
+    </section>
+
+    <section class="band" id="services" aria-labelledby="servH">
+      <h2 id="servH">紫微諮詢與服務項目</h2>
+      <article class="card">
+        <h3>本命命盤與十二宮位全解析</h3>
+        <p class="for">適合想全面認識自己、釐清人生核心課題與天賦方向的人</p>
+        <p>深入剖析命宮、夫妻宮、事業宮、財帛宮等十二宮位的結構，幫您掌握性格特質、財運格局、人際互動模式，以及生活作息上該留意的地方。</p>
+      </article>
+      <article class="card">
+        <h3>十年大限與流年運勢規劃</h3>
+        <p class="for">適合正面臨職涯轉折、創業評估、婚育規劃或重大決策的人</p>
+        <p>解讀十年大限的起伏與年度流年的走向，辨識機會點與潛在風險，訂出穩健的中長期行動藍圖。</p>
+      </article>
+      <article class="card">
+        <h3>流月詳批與短期節奏提醒</h3>
+        <p class="for">適合想掌握近期工作推進、重要專案或人際溝通時機的人</p>
+        <p>針對特定月份做細部推演，提供具體的進退節奏與溝通提醒，讓日常決策更有底氣。</p>
+      </article>
+      <p class="how">預約方式：先排出您的命盤，在命盤頁點選想要的服務，谷吉爸會主動與您聯絡。</p>
+      <button type="button" class="primary" id="startBtn2">先排我的命盤</button>
+    </section>
+
+    <section class="band pale" id="place" aria-labelledby="placeH">
+      <h2 id="placeH">紫微漫談論壇<br>永定五號 論命美學館</h2>
+      <p>位於臺中市南屯區靜謐巷弄裡的「永定五號 論命美學館」，是一處沉靜、沒有壓力的交流空間，讓每一次命盤對話都能安心展開。</p>
+      <dl class="info">
+        <dt>地址</dt><dd>408 臺中市南屯區永定里永定巷 5 號</dd>
+        <dt>時間</dt><dd>採預約制。每週三 10:00–11:00 為固定開放時段，其餘時段請先私訊預約。</dd>
+        <dt>聯絡</dt><dd>Instagram <a href="https://www.instagram.com/good100_lin/" target="_blank" rel="noopener">@good100_lin</a></dd>
+      </dl>
+      <iframe class="map" title="永定五號 論命美學館地圖" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=%E6%B0%B8%E5%AE%9A%E4%BA%94%E8%99%9F+%E8%AB%96%E5%91%BD%E7%BE%8E%E5%AD%B8%E9%A4%A8&output=embed"></iframe>
+      <p><a class="ghost maplink" href="https://www.google.com/maps/search/?api=1&query=%E6%B0%B8%E5%AE%9A%E4%BA%94%E8%99%9F+%E8%AB%96%E5%91%BD%E7%BE%8E%E5%AD%B8%E9%A4%A8" target="_blank" rel="noopener">用 Google 地圖開啟</a></p>
+      <h3>怎麼去</h3>
+      <dl class="info">
+        <dt>捷運</dt><dd>搭臺中捷運綠線到「市政府站」或「南屯站」，再轉市區公車或計程車到南屯區永定巷。</dd>
+        <dt>開車騎車</dt><dd>從南屯區主要幹道轉入永定巷即可抵達。巷弄較窄，開車建議先在周邊找合法停車格，再步行進來。</dd>
+      </dl>
+    </section>
+
+    <footer class="foot2">
+      <p>命理分析僅供參考，不能取代醫療、法律或財務等專業意見。</p>
+      <p><a href="/privacy">隱私權政策</a>　© 谷吉爸紫微</p>
+    </footer>
   </section>
 
   <!-- 命盤頁 -->
@@ -217,9 +324,10 @@ input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--w
     <div class="panel" id="palaceBox" aria-live="polite"></div>
     <div class="panel" id="readBox"></div>
     <div class="cta" id="cta">
-      <p>想更深入了解？告訴谷吉爸您需要什麼：</p>
-      <button class="ghost" data-want="detail">我想要詳細命盤解析</button>
-      <button class="ghost" data-want="yearly">我想看流年分析</button>
+      <p>想更深入了解？點選您想預約的服務，可以複選：</p>
+      <button class="ghost" data-want="detail">本命命盤與十二宮位全解析</button>
+      <button class="ghost" data-want="yearly">十年大限與流年運勢規劃</button>
+      <button class="ghost" data-want="monthly">流月詳批與短期節奏提醒</button>
       <p class="small" id="wantMsg" style="font-weight:400;font-size:14px;color:var(--soft)"></p>
     </div>
     <p><button class="link" id="backBtn">回到填寫頁</button></p>
@@ -295,8 +403,9 @@ $("t").append(h("option",{value:-1},"不確定出生時間"));
 const radio=n=>document.querySelector('input[name="'+n+'"]:checked').value;
 document.querySelectorAll('input[name="cal"]').forEach(r=>r.addEventListener("change",()=>{$("leapRow").hidden=radio("cal")!=="lunar";}));
 
+$("startBtn2").addEventListener("click",()=>$("startBtn").click());
 $("startBtn").addEventListener("click",()=>{$("sheet").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"start"});});
-const session=(new URLSearchParams(location.search).get("s")||(location.hash||"").replace(/^#/,"")).replace(/[^A-Za-z0-9-]/g,"").slice(0,40);
+const session=(new URLSearchParams(location.search).get("s")||"").replace(/[^A-Za-z0-9-]/g,"").slice(0,40);
 
 /* ---------- 與伺服器溝通 ---------- */
 let myId=null,current=null;
@@ -340,6 +449,7 @@ $("form").addEventListener("submit",async ev=>{
 /* ---------- 命盤 ---------- */
 function show(v){for(const id of ["vForm","vChart","vAdmin"])$(id).hidden=id!==v;
   $("wrap").classList.toggle("wide",v==="vAdmin");
+  $("nav").hidden=v!=="vForm";
   $("tagline").textContent=v==="vAdmin"?"名單後台":v==="vChart"?"紫微斗數命盤":"";
   window.scrollTo(0,0);}
 const HK="祿權科忌";
@@ -523,7 +633,7 @@ function renderLeads(){
     const del=h("button",{class:"link",onclick:async()=>{ if(del.dataset.arm){try{await api("/api/admin?id="+r.id,{method:"DELETE"});rows=rows.filter(x=>x!==r);renderLeads();}catch(x){$("adminErr").textContent="刪除沒有成功，請再試一次。";$("adminErr").hidden=false;}} else{del.dataset.arm="1";del.textContent="再點一次確認刪除";setTimeout(()=>{delete del.dataset.arm;del.textContent="刪除";},4000);} }},"刪除");
     box.append(h("article",{class:"lead"},
       h("h3",null,String(r.name||"")+"　",h("span",{style:"font:400 14px var(--sans);color:var(--muted)"},String(r.gender||""))),
-      h("div",null,r.wantDetail?h("span",{class:"chip"},"要詳細解析"):null,r.wantYearly?h("span",{class:"chip"},"要流年分析"):null),
+      h("div",null,r.wantDetail?h("span",{class:"chip"},"本命全解析"):null,r.wantYearly?h("span",{class:"chip"},"大限流年規劃"):null,r.wantMonthly?h("span",{class:"chip"},"流月詳批"):null),
       h("dl",null,h("dt",null,"生辰"),h("dd",null,birth(r)+"　"+hour(r)),h("dt",null,"手機"),h("dd",null,String(r.phone||"")),
         h("dt",null,"Email"),h("dd",null,String(r.email||"")),h("dt",null,"LINE ID"),h("dd",null,String(r.line||"未填")),h("dt",null,"場次"),h("dd",null,String(r.session||"未標記")),
         h("dt",null,"填寫時間"),h("dd",null,r.createdAt?new Date(r.createdAt).toLocaleString("zh-TW",{hour12:false}):"")),
@@ -532,8 +642,8 @@ function renderLeads(){
 }
 $("csvBtn").addEventListener("click",async()=>{
   const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const csv=[["姓名","性別","生日","時辰","手機","Email","LINE ID","場次","要詳細解析","要流年分析","狀態","填寫時間"].map(q).join(",")]
-    .concat(rows.map(r=>[r.name,r.gender,birth(r),hour(r),r.phone,r.email,r.line,r.session,r.wantDetail?"是":"",r.wantYearly?"是":"",r.status,r.createdAt].map(q).join(","))).join("\n");
+  const csv=[["姓名","性別","生日","時辰","手機","Email","LINE ID","場次","本命全解析","大限流年規劃","流月詳批","狀態","填寫時間"].map(q).join(",")]
+    .concat(rows.map(r=>[r.name,r.gender,birth(r),hour(r),r.phone,r.email,r.line,r.session,r.wantDetail?"是":"",r.wantYearly?"是":"",r.wantMonthly?"是":"",r.status,r.createdAt].map(q).join(","))).join("\n");
   const a=h("a",{href:URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"})),download:"guji-ziwei-leads.csv"});
   document.body.append(a);a.click();a.remove();
 });

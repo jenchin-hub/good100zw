@@ -2,14 +2,16 @@
 import { writeJson, readJson } from "../lib/store.js";
 import { ID_RE, stamp } from "../lib/leads.js";
 
+const KEYS = { detail: "wantDetail", yearly: "wantYearly", monthly: "wantMonthly" };
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   try {
     if (req.method !== "POST") { res.setHeader("Allow", "POST"); return res.status(405).json({ error: "method" }); }
     const { id, key } = req.body || {};
-    if (typeof id !== "string" || !ID_RE.test(id) || (key !== "detail" && key !== "yearly")) return res.status(400).json({ error: "invalid" });
+    if (typeof id !== "string" || !ID_RE.test(id) || !KEYS[key]) return res.status(400).json({ error: "invalid" });
     if (!(await readJson(`leads/${id}.json`))) return res.status(404).json({ error: "not_found" });
-    await writeJson(`upd/${id}/${stamp()}.json`, key === "detail" ? { wantDetail: true } : { wantYearly: true });
+    await writeJson(`upd/${id}/${stamp()}.json`, { [KEYS[key]]: true });
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error(e);
