@@ -825,10 +825,10 @@ function sessionPanel(data,fail,msg){
     view.append(h("p",{class:"shead"},h("strong",null,s1.date.replace(/-/g,"/")+"　"+s1.kind)),
       h("p",{class:"small"},"記錄人 "+s1.author+(s1.updatedBy&&s1.updatedAt!==s1.createdAt?"　最後修改 "+fmt(s1.updatedAt)+" "+s1.updatedBy:"")+"　",
         h("button",{class:"link",onclick:()=>{edit.replaceChildren(editor(s1,()=>{edit.hidden=true;view.hidden=false;}));edit.hidden=false;view.hidden=true;}},"修改"),"　",del),
-      (()=>{const long=s1.body.length>320||s1.body.split("\n").length>9,body=h("p",{class:"nbody"+(long?" clamp":"")},s1.body);
+      ...[].concat((()=>{const long=s1.body.length>320||s1.body.split("\n").length>9,body=h("p",{class:"nbody"+(long?" clamp":"")},s1.body);
         if(!long)return body;
         const tg=h("button",{class:"link",onclick:()=>{const open=body.classList.toggle("clamp");tg.textContent=open?"展開全文":"收合";}},"展開全文");
-        return [body,h("p",null,tg)];})());
+        return [body,h("p",null,tg)];})()));
     return h("div",{class:"noteitem"},view,edit);});
   return h("section",{class:"panel"},h("h3",null,"訪談紀錄"),
     h("p",{class:"small"},"貼上在 ChatGPT 整理好的內容。這裡的紀錄會放進匯出的 PDF；下面的「備註」只留在後台。"),
