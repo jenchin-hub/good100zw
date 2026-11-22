@@ -10,7 +10,10 @@
 - 本命盤／大限／流年切換，生年四化可顯示或隱藏，三層四化以形狀區分
 - 命宮主星、身宮、生年四化的簡短文字解讀
 - 需求按鈕：本命全解析、大限流年規劃、流月詳批（可複選）
-- 名單後台（`/admin`，需登入）：名單、需求標記、處理狀態、看命盤、下載 CSV、刪除、產生場次連結與 QR code
+- 命盤下載：聽眾與管理者都可以把命盤存成 JPG 或 PDF（在瀏覽器內用 canvas 繪製，不經過伺服器）
+- 後台（`/admin`，需登入）：客戶名單可搜尋，並依場次、狀態、需求篩選；下載 CSV；產生場次連結與 QR code
+- 客戶檔案：每位客戶一頁，含命盤、聯絡方式、需求、處理狀態、處理人、備註，可修改資料（例如補上出生時辰）
+- 操作紀錄：誰在什麼時候查看、修改、備註、刪除、匯出，都會記錄
 
 ## 架構（Vercel）
 
@@ -22,18 +25,24 @@
 | `public/vendor/` | 排盤程式庫 iztro 2.6.5、QR code 程式庫 qrcode-generator（皆為 MIT 授權） |
 | `api/leads.js` | `POST` 聽眾送出資料（公開）；`GET` 讀取全部名單（管理者） |
 | `api/want.js` | `POST` 聽眾標記想要詳細解析或流年分析 |
-| `api/admin.js` | 管理者登入、登出、改處理狀態、刪除名單 |
+| `api/admin.js` | 管理者登入、登出、匯入舊名單；資料庫未接上時的舊版狀態與刪除 |
+| `api/client.js` | 客戶檔案：讀取、修改、備註、刪除，每個動作寫入紀錄 |
+| `lib/db.js` | 資料庫層：Postgres（Neon）；本機沒有連線字串時用 PGlite，資料放在 `.data/pg` |
+| `lib/legacy.js` | 讀取舊版 Blob 名單，供資料庫未接上時顯示，以及搬資料用 |
 | `lib/store.js` | 儲存層：Vercel 私有 Blob；本機沒有金鑰時寫到 `.data/` |
 | `lib/auth.js` | Email 白名單、密碼雜湊（scrypt）、簽章 cookie |
 | `prototype-artifact.html` | 第一版原型（Claude artifact 版），僅供參考 |
 
-名單資料存在私有 Blob：每筆名單一個檔（`leads/<編號>.json`），需求標記與狀態變更各寫一個小檔（`upd/<編號>/...`），讀取時合併。
+資料存在 Postgres，共四張表：`clients`（客戶）、`notes`（備註）、`audit`（操作紀錄）、`meta`（系統設定）。資料表在第一次連線時自動建立。
+
+還沒設定 `DATABASE_URL` 時，網站會退回舊版：名單寫在私有 Blob（`leads/<編號>.json`、`upd/<編號>/...`），後台只有簡單名單。接上資料庫後，後台會出現「匯入舊名單」按鈕，把 Blob 裡的名單搬進資料庫（可重複執行，舊檔保留當備份）。
 
 ## 環境變數
 
 | 名稱 | 說明 |
 | --- | --- |
 | `BLOB_READ_WRITE_TOKEN` | 把 Blob 儲存空間連到專案時 Vercel 會自動建立 |
+| `DATABASE_URL` | Postgres 連線字串。在 Vercel 的 Storage 建立 Neon 資料庫並連到專案時會自動建立 |
 | `SESSION_SECRET` | 登入 cookie 的簽章金鑰，至少 32 個字元的亂數 |
 | `ADMIN_HASHES` | 管理者白名單與密碼雜湊，JSON 格式，用下面的指令產生 |
 

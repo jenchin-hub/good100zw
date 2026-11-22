@@ -179,6 +179,24 @@ textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
 .login h2{font-weight:300;font-size:30px;letter-spacing:.06em;margin:0 0 8px}
 #qrBox{margin:0 0 12px}
 #qrBox summary{cursor:pointer;font-weight:500}
+.filters{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.filters input{grid-column:1/-1}
+.filters select,.filters input{min-height:46px;border-radius:12px;padding:8px 12px}
+.cname{font-weight:300;font-size:30px;letter-spacing:.06em;margin:4px 0 4px}
+.cname span{font-size:15px;font-weight:400;color:var(--muted);letter-spacing:0}
+#clientView .panel .info{margin:8px 0 14px;font-size:15px}
+#clientView .check{margin:6px 0}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.edit{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+#clientView textarea{height:110px;font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:block;margin-bottom:10px}
+.noteitem{border-top:1px solid var(--line);padding:12px 0 2px}
+.noteitem .nbody{white-space:pre-wrap;overflow-wrap:anywhere}
+.log{list-style:none;margin:0 0 10px;padding:0;font-size:13px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:8px 0;border-top:1px solid var(--line)}
+.log li span:first-child{color:var(--muted);white-space:nowrap}
+.log li span:last-child{grid-column:1/-1}
+.log li span:nth-child(2){overflow-wrap:anywhere;color:var(--muted)}
+@media (max-width:420px){.two{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -304,6 +322,12 @@ textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
     <div id="chartBox"></div>
     <div class="panel" id="palaceBox" aria-live="polite"></div>
     <div class="panel" id="readBox"></div>
+    <div class="cta" id="dl" hidden>
+      <p>把命盤存下來：</p>
+      <button class="ghost" id="dlJpg">下載命盤圖片（JPG）</button>
+      <button class="ghost" id="dlPdf">下載命盤 PDF</button>
+      <p id="dlMsg" style="font-weight:400;font-size:14px;color:var(--muted)"></p>
+    </div>
     <div class="cta" id="cta">
       <p>想更深入了解？點選您想預約的服務，可以複選：</p>
       <button class="ghost" data-want="detail">本命命盤與十二宮位全解析</button>
@@ -324,19 +348,31 @@ textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
       <button class="primary">登入</button>
     </form>
     <div id="adminBody" hidden>
-      <div class="bar">
-        <strong id="count">名單載入中…</strong>
-        <span><button class="ghost" id="reloadBtn">重新整理</button> <button class="ghost" id="csvBtn">下載 CSV</button></span>
+      <div class="note" id="dbNote" hidden></div>
+      <div id="listView">
+        <div class="bar">
+          <strong id="count">名單載入中…</strong>
+          <span><button class="ghost" id="reloadBtn">重新整理</button> <button class="ghost" id="csvBtn">下載 CSV</button></span>
+        </div>
+        <p class="err" id="adminErr" hidden></p>
+        <div class="filters" id="filters" hidden>
+          <input type="text" id="q" placeholder="搜尋姓名、手機、Email、LINE ID" aria-label="搜尋客戶" autocomplete="off">
+          <select id="fSession" aria-label="依場次篩選"></select>
+          <select id="fStatus" aria-label="依狀態篩選"></select>
+          <select id="fWant" aria-label="依需求篩選">
+            <option value="">全部需求</option><option value="any">有預約需求</option><option value="wantDetail">本命全解析</option><option value="wantYearly">大限流年規劃</option><option value="wantMonthly">流月詳批</option>
+          </select>
+        </div>
+        <details class="panel" id="qrBox">
+          <summary>產生場次連結與 QR code</summary>
+          <label class="f" style="margin-top:12px"><span>場次代碼（英文、數字、連字號，可留空）</span><input type="text" id="qrCode" placeholder="taipei-1120" maxlength="40" autocomplete="off"></label>
+          <p id="qrUrl" style="overflow-wrap:anywhere;margin-top:10px"></p>
+          <div id="qrImg" style="max-width:240px"></div>
+          <p class="small">聽眾掃這個 QR code 填寫後，名單上會標出場次代碼。</p>
+        </details>
+        <div id="leads"></div>
       </div>
-      <p class="err" id="adminErr" hidden></p>
-      <details class="panel" id="qrBox">
-        <summary>產生場次連結與 QR code</summary>
-        <label class="f" style="margin-top:12px"><span>場次代碼（英文、數字、連字號，可留空）</span><input type="text" id="qrCode" placeholder="taipei-1120" maxlength="40" autocomplete="off"></label>
-        <p id="qrUrl" style="overflow-wrap:anywhere;margin-top:10px"></p>
-        <div id="qrImg" style="max-width:240px"></div>
-        <p class="small">聽眾掃這個 QR code 填寫後，名單上會標出場次代碼。</p>
-      </details>
-      <div id="leads"></div>
+      <div id="clientView" hidden></div>
     </div>
   </section>
 </div>
@@ -453,7 +489,7 @@ function showChart(rec,chart,saved,fromAdmin){
   current={rec,chart};
   const note=$("saveNote");note.hidden=fromAdmin||saved;
   if(!fromAdmin&&!saved)note.textContent="資料沒有送出，可能是網路不穩。您還是可以先看命盤；想預約解析的話，請回到填寫頁再送出一次。";
-  $("cta").hidden=fromAdmin;$("wantMsg").textContent="";
+  $("cta").hidden=fromAdmin;$("wantMsg").textContent="";$("dl").hidden=!chart;$("dlMsg").textContent="";
   document.querySelectorAll("#cta [data-want]").forEach(b=>b.classList.remove("on"));
   $("backBtn").textContent=fromAdmin?"回到名單後台":"回到填寫頁";
   $("backBtn").onclick=()=>show(fromAdmin?"vAdmin":"vForm");
@@ -569,14 +605,120 @@ document.querySelectorAll("#cta [data-want]").forEach(b=>b.addEventListener("cli
   b.disabled=false;
 }));
 
+/* ---------- 下載命盤（畫在 canvas 上，再存成 JPG 或 PDF） ---------- */
+function drawChartCanvas(){
+  const rec=current.rec,chart=current.chart,ov=overlay(),ps=chart.palaces;
+  const C={bg:"#F4F8FA",white:"#FFFFFF",ink:"#263C47",muted:"#536B76",primary:"#527482",grid:"#C3D2D8",tint:"#EAF2F5",red:"#A8505A",green:"#4A7A68",min:"#3F5C69"};
+  const W=1600,pad=40,cw=(W-2*pad)/4,chh=480,top=150,H=top+chh*4+120;
+  const cv=document.createElement("canvas");cv.width=W;cv.height=H;const g=cv.getContext("2d");
+  const F=(px,w)=>{g.font=(w||400)+" "+px+"px 'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif";};
+  const T=(t,x,y,col,al)=>{g.fillStyle=col;g.textAlign=al||"left";g.fillText(t,x,y);};
+  g.fillStyle=C.bg;g.fillRect(0,0,W,H);g.textBaseline="alphabetic";
+  F(46,700);T("谷吉爸紫微",pad,92,C.ink);
+  const mode=view.mode==="decadal"&&ov&&ov.dec?"大限 "+ps[ov.dec.index].decadal.range.join("–")+" 歲":view.mode==="yearly"&&ov&&ov.yr?view.year+" "+ov.yr.heavenlyStem+ov.yr.earthlyBranch+"年 流年（虛歲 "+ov.age+"）":"本命盤";
+  F(30,500);T("紫微斗數命盤　"+mode,W-pad,90,C.muted,"right");
+  const badge=(kind,chx,cx,y)=>{const s=26;
+    if(kind==="b"){g.fillStyle=C.red;g.fillRect(cx-s/2,y,s,s);F(20,700);T(chx,cx,y+20,C.white,"center");}
+    else if(kind==="d"){g.fillStyle=C.white;g.fillRect(cx-s/2,y,s,s);g.strokeStyle=C.primary;g.lineWidth=2;g.strokeRect(cx-s/2+1,y+1,s-2,s-2);F(20,700);T(chx,cx,y+20,C.primary,"center");}
+    else{g.fillStyle=C.green;g.beginPath();g.arc(cx,y+s/2,s/2,0,Math.PI*2);g.fill();F(20,700);T(chx,cx,y+20,C.white,"center");}
+    return y+s+3;};
+  ps.forEach((p,i)=>{
+    const pos=POS[p.earthlyBranch],x=pad+(pos[1]-1)*cw,y=top+(pos[0]-1)*chh;
+    g.fillStyle=C.white;g.fillRect(x,y,cw,chh);
+    let cx=x+14,y0=y+16;const rowH=205;
+    const col=(st,fs,wt,color,w)=>{
+      if(cx+w>x+cw-8){cx=x+14;y0+=rowH;}
+      const mid=cx+w/2;let yy=y0;F(fs,wt);
+      for(const chx of st.name){T(chx,mid,yy+fs,color,"center");yy+=fs*1.1;}
+      yy+=4;
+      if(st.brightness){F(18,400);T(st.brightness,mid,yy+18,C.muted,"center");yy+=24;}
+      if(view.birth&&st.mutagen)yy=badge("b",st.mutagen,mid,yy);
+      if(ov&&ov.dec){const k=ov.dec.mutagen.indexOf(st.name);if(k>=0)yy=badge("d",HK[k],mid,yy);}
+      if(ov&&ov.yr){const k=ov.yr.mutagen.indexOf(st.name);if(k>=0)yy=badge("y",HK[k],mid,yy);}
+      cx+=w+3;};
+    p.majorStars.forEach(st=>col(st,32,700,C.ink,36));
+    p.minorStars.forEach(st=>col(st,28,500,C.min,32));
+    p.adjectiveStars.forEach(st=>col(st,24,400,C.muted,28));
+    const by=y+chh;
+    F(20,400);T(p.changsheng12,x+12,by-124,C.muted);T(p.suiqian12,x+cw-12,by-124,C.muted,"right");
+    T(p.boshi12,x+12,by-96,C.muted);T(p.jiangqian12,x+cw-12,by-96,C.muted,"right");
+    F(22,700);T(p.decadal.range.join("–"),x+cw/2,by-96,C.ink,"center");
+    let tx=x+12;const tag=(txt,color,on)=>{F(19,500);const w=g.measureText(txt).width+12;
+      if(on){g.fillStyle=color;g.fillRect(tx,by-84,w,26);T(txt,tx+6,by-64,C.white);}
+      else{g.strokeStyle=color;g.lineWidth=2;g.strokeRect(tx+1,by-83,w-2,24);T(txt,tx+6,by-64,color);}
+      tx+=w+6;};
+    if(ov&&view.mode==="decadal"&&ov.dec)tag("大"+shortN(ov.dec.palaceNames[i]),C.primary,i===ov.dec.index);
+    if(ov&&ov.yr){tag("流"+shortN(ov.yr.palaceNames[i]),C.green,i===ov.yr.index);if(ov.dec&&i===ov.dec.index)tag("大限",C.primary,true);}
+    F(28,700);const nm=pName(p);
+    if(p.name==="命宮"){const w=g.measureText(nm).width+14;g.fillStyle=C.primary;g.fillRect(x+10,by-48,w,36);T(nm,x+17,by-20,C.white);}
+    else T(nm,x+12,by-20,C.ink);
+    F(22,400);T(p.heavenlyStem+p.earthlyBranch,x+cw-12,by-20,C.muted,"right");
+    if(p.isBodyPalace){F(22,700);T("身",x+cw-64,by-20,C.red,"right");}
+  });
+  const mx=pad+cw,my=top+chh,mw=cw*2,mh=chh*2;
+  g.fillStyle=C.tint;g.fillRect(mx,my,mw,mh);
+  let ly=my+mh/2-190;F(60,700);T(rec.name,mx+48,ly,C.ink);ly+=74;
+  const line=(t,b)=>{F(30,b?500:400);T(t,mx+48,ly,C.ink);ly+=52;};
+  line(rec.gender+"　"+chart.zodiac+"年生　"+chart.fiveElementsClass);
+  line("國曆 "+chart.solarDate);line("農曆 "+chart.lunarDate);line(chart.time+"　"+chart.chineseDate);
+  line("命主 "+chart.soul+"　身主 "+chart.body,true);
+  const hua=[];ps.forEach(p=>p.majorStars.concat(p.minorStars).forEach(st=>{if(st.mutagen)hua[HK.indexOf(st.mutagen)]=st.name+"化"+st.mutagen;}));
+  F(26,400);T("生年四化："+hua.filter(Boolean).join("、"),mx+48,ly+8,C.muted);
+  g.strokeStyle=C.grid;g.lineWidth=2;
+  ps.forEach(p=>{const pos=POS[p.earthlyBranch];g.strokeRect(pad+(pos[1]-1)*cw,top+(pos[0]-1)*chh,cw,chh);});
+  g.strokeRect(mx,my,mw,mh);
+  F(22,400);
+  T((ov?"方塊紅底：生年四化　外框：大限四化　圓形綠底：流年四化　　":"")+"命理分析僅供參考，不能取代醫療、法律或財務等專業意見。",pad,H-62,C.muted);
+  T(location.host+"　製表日期 "+new Date().toLocaleDateString("zh-TW"),pad,H-28,C.muted);
+  return cv;
+}
+function saveBlob(blob,name){const url=URL.createObjectURL(blob),a=h("a",{href:url,download:name});document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
+const jpegOf=cv=>new Promise((ok,no)=>cv.toBlob(b=>b?ok(b):no(new Error("jpeg")),"image/jpeg",0.92));
+async function pdfOf(cv){
+  const jpg=new Uint8Array(await (await jpegOf(cv)).arrayBuffer()),pw=595.28,ph=+(pw*cv.height/cv.width).toFixed(2),enc=new TextEncoder(),parts=[],offs=[];let len=0;
+  const put=x=>{const u=typeof x==="string"?enc.encode(x):x;parts.push(u);len+=u.length;};
+  const obj=(n,body)=>{offs[n]=len;put(n+" 0 obj\n"+body+"\nendobj\n");};
+  put("%PDF-1.4\n");
+  obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2,"<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+  obj(3,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pw+" "+ph+"] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+  offs[4]=len;put("4 0 obj\n<< /Type /XObject /Subtype /Image /Width "+cv.width+" /Height "+cv.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");put(jpg);put("\nendstream\nendobj\n");
+  const cs="q "+pw+" 0 0 "+ph+" 0 0 cm /Im0 Do Q";
+  obj(5,"<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream");
+  const xref=len;put("xref\n0 6\n0000000000 65535 f \n"+[1,2,3,4,5].map(n=>String(offs[n]).padStart(10,"0")+" 00000 n \n").join("")+"trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF\n");
+  return new Blob(parts,{type:"application/pdf"});
+}
+async function downloadChart(kind){
+  const msg=$("dlMsg");msg.textContent="製作中…";
+  try{
+    if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+    const cv=drawChartCanvas(),name="谷吉爸紫微命盤-"+String(current.rec.name||"").replace(/[\\/:*?"<>|\s]+/g,"_");
+    if(kind==="pdf")saveBlob(await pdfOf(cv),name+".pdf");else saveBlob(await jpegOf(cv),name+".jpg");
+    msg.textContent="已開始下載。如果沒有反應，請改用 Safari 或 Chrome 開啟本頁再試一次。";
+  }catch(e){msg.textContent="檔案沒有製作成功，請再試一次。";}
+}
+$("dlJpg").addEventListener("click",()=>downloadChart("jpg"));
+$("dlPdf").addEventListener("click",()=>downloadChart("pdf"));
+
 /* ---------- 後台 ---------- */
-let rows=[];
+let rows=[],dbMode=false,me="";
 const ADMIN=location.pathname.replace(/\/$/,"")==="/admin";
 function needLogin(){$("loginForm").hidden=false;$("adminBody").hidden=true;$("whoBox").hidden=true;$("who").textContent="";}
-function signedIn(j){$("loginForm").hidden=true;$("adminBody").hidden=false;$("whoBox").hidden=false;$("who").textContent=j&&j.email?j.email+" 登入中":"";loadLeads();}
+function signedIn(j){$("loginForm").hidden=true;$("adminBody").hidden=false;$("whoBox").hidden=false;me=(j&&j.email)||"";$("who").textContent=me?me+" 登入中":"";
+  dbMode=!!(j&&j.db);$("filters").hidden=!dbMode;showList();dbNote(j);loadLeads();}
+function showList(){$("listView").hidden=false;$("clientView").hidden=true;}
+function dbNote(j){
+  const n=$("dbNote");n.replaceChildren();n.hidden=true;
+  if(!dbMode){n.hidden=false;n.append("資料庫還沒接上，目前顯示的是舊版名單。接上後才有客戶檔案、備註、搜尋與紀錄。");return;}
+  if(j&&j.legacy>0){n.hidden=false;
+    const btn=h("button",{class:"ghost",style:"margin-top:8px",onclick:async()=>{btn.disabled=true;btn.textContent="匯入中…";
+      try{const r=await api("/api/admin",{method:"POST",body:JSON.stringify({action:"migrate"})});n.replaceChildren("已匯入 "+r.moved+" 筆舊名單（舊檔共 "+r.total+" 筆，已存在的不會重複）。");loadLeads();}
+      catch(e){btn.disabled=false;btn.textContent="匯入舊名單";n.append(h("p",{class:"err",style:"margin-top:8px"},"匯入沒有成功，請再試一次。"));}}},"匯入舊名單");
+    n.append("有 "+j.legacy+" 筆舊版名單還沒搬進資料庫。",h("br"),btn);}
+}
 async function loadLeads(){
   $("count").textContent="名單載入中…";
-  try{const j=await api("/api/leads");rows=j.leads||[];$("adminErr").hidden=true;renderLeads();}
+  try{const j=await api("/api/leads");rows=j.leads||[];$("adminErr").hidden=true;fillFilters();renderLeads();}
   catch(e){if(e.status===401)return needLogin();
     $("count").textContent="名單沒有載入";$("adminErr").textContent="名單讀取失敗，請檢查網路後按「重新整理」。";$("adminErr").hidden=false;}
 }
@@ -585,7 +727,7 @@ $("loginForm").addEventListener("submit",async ev=>{
   try{const j=await api("/api/admin",{method:"POST",body:JSON.stringify({action:"login",email:$("lEmail").value,password:$("lPass").value})});$("lPass").value="";signedIn(j);}
   catch(e){er.textContent=e.status===401?"Email 或密碼不對，請再確認。":"登入沒有成功，請檢查網路後再試一次。";er.hidden=false;}
 });
-$("logoutBtn").addEventListener("click",async()=>{try{await api("/api/admin",{method:"POST",body:JSON.stringify({action:"logout"})});}catch(e){}rows=[];$("leads").replaceChildren();show("vAdmin");needLogin();});
+$("logoutBtn").addEventListener("click",async()=>{try{await api("/api/admin",{method:"POST",body:JSON.stringify({action:"logout"})});}catch(e){}rows=[];$("leads").replaceChildren();$("clientView").replaceChildren();show("vAdmin");showList();needLogin();});
 $("reloadBtn").addEventListener("click",loadLeads);
 function drawQr(){
   const code=$("qrCode").value.replace(/[^A-Za-z0-9-]/g,"").slice(0,40);
@@ -604,7 +746,28 @@ $("qrCode").addEventListener("input",drawQr);
 if(ADMIN){show("vAdmin");api("/api/admin").then(signedIn,needLogin);}
 const birth=r=>(r.cal==="lunar"?"農曆 ":"國曆 ")+r.y+"/"+r.m+"/"+r.d+(r.leap?"（閏月）":"");
 const hour=r=>r.t>=0&&TIMES[r.t]?TIMES[r.t]:"不確定";
+const fmt=t=>t?new Date(t).toLocaleString("zh-TW",{hour12:false,year:"numeric",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"}):"";
+const chips=r=>[r.wantDetail?h("span",{class:"chip"},"本命全解析"):null,r.wantYearly?h("span",{class:"chip"},"大限流年規劃"):null,r.wantMonthly?h("span",{class:"chip"},"流月詳批"):null];
+function fillFilters(){
+  if(!dbMode)return;
+  const keep=$("fSession").value,ss=[...new Set(rows.map(r=>r.session||""))].sort();
+  $("fSession").replaceChildren(h("option",{value:"*"},"全部場次"),...ss.map(x=>h("option",{value:x,selected:x===keep&&keep!=="*"},x||"未標記場次")));
+  if(!$("fStatus").options.length)$("fStatus").replaceChildren(h("option",{value:""},"全部狀態"),...STATUS.map(x=>h("option",{value:x},x)));
+}
+function filtered(){
+  if(!dbMode)return rows;
+  const q=$("q").value.trim().toLowerCase(),fs=$("fSession").value,st=$("fStatus").value,w=$("fWant").value;
+  return rows.filter(r=>{
+    if(q&&![r.name,r.phone,r.email,r.line].some(v=>String(v||"").toLowerCase().includes(q)))return false;
+    if(fs!=="*"&&(r.session||"")!==fs)return false;
+    if(st&&r.status!==st)return false;
+    if(w==="any"&&!(r.wantDetail||r.wantYearly||r.wantMonthly))return false;
+    if(w&&w!=="any"&&!r[w])return false;
+    return true;});
+}
+["q","fSession","fStatus","fWant"].forEach(id=>$(id).addEventListener(id==="q"?"input":"change",()=>renderLeads()));
 function renderLeads(){
+  if(dbMode)return renderClients();
   $("count").textContent="共 "+rows.length+" 筆名單";
   const box=$("leads");box.replaceChildren();
   if(!rows.length){box.append(h("p",null,"還沒有名單。聽眾送出資料後，按「重新整理」就會出現在這裡。"));return;}
@@ -621,12 +784,92 @@ function renderLeads(){
       h("div",{class:"acts"},sel,h("button",{class:"ghost",onclick:()=>{let c=null;try{if(r.t>=0)c=buildChart(r);}catch(x){}showChart(r,c,true,true);}},"看命盤"),del)));
   });
 }
+function renderClients(){
+  const list=filtered(),box=$("leads");box.replaceChildren();
+  $("count").textContent=list.length===rows.length?"共 "+rows.length+" 位客戶":"符合 "+list.length+" 位（共 "+rows.length+" 位）";
+  if(!rows.length){box.append(h("p",null,"還沒有客戶。聽眾送出資料後，按「重新整理」就會出現在這裡。"));return;}
+  if(!list.length){box.append(h("p",null,"沒有符合條件的客戶，請調整搜尋或篩選。"));return;}
+  list.forEach(r=>box.append(h("article",{class:"lead"},
+    h("h3",null,String(r.name||"")+"　",h("span",{style:"font:400 14px var(--sans);color:var(--muted)"},String(r.gender||""))),
+    h("div",null,chips(r)),
+    h("dl",null,h("dt",null,"生辰"),h("dd",null,birth(r)+"　"+hour(r)),h("dt",null,"手機"),h("dd",null,String(r.phone||"")),
+      h("dt",null,"場次"),h("dd",null,String(r.session||"未標記")),
+      h("dt",null,"狀態"),h("dd",null,r.status+"　處理人："+(r.assignee||"未指派")+(r.noteCount?"　備註 "+r.noteCount+" 則":"")),
+      h("dt",null,"填寫時間"),h("dd",null,fmt(r.createdAt))),
+    h("div",{class:"acts"},h("button",{class:"ghost",onclick:()=>openClient(r.id)},"開啟檔案")))));
+}
+/* ---------- 客戶檔案 ---------- */
+const ACT={view:"查看檔案",create:"填寫資料",delete:"刪除客戶檔案"};
+async function openClient(id){
+  $("listView").hidden=true;const v=$("clientView");v.hidden=false;v.replaceChildren(h("p",null,"檔案載入中…"));window.scrollTo(0,0);
+  try{renderClient(await api("/api/client?id="+id));}
+  catch(e){if(e.status===401){showList();return needLogin();}
+    v.replaceChildren(h("p",{class:"err"},e.status===404?"這位客戶的檔案已經不存在。":"檔案讀取失敗，請檢查網路後再試一次。"),h("p",null,h("button",{class:"link",onclick:backToList},"回到名單")));}
+}
+function backToList(){showList();loadLeads();}
+function renderClient(data){
+  const c=data.client,v=$("clientView"),msg=h("p",{class:"err",role:"alert",hidden:true});
+  const fail=t=>{msg.textContent=t;msg.hidden=false;};
+  const patch=async body=>{msg.hidden=true;try{renderClient(await api("/api/client",{method:"PATCH",body:JSON.stringify(Object.assign({id:c.id},body))}));}catch(e){fail(e.message==="invalid_fields"?"資料格式不對，請檢查日期、手機與 Email。":"沒有存成功，請再試一次。");}};
+  let chart=null;try{if(c.t>=0)chart=buildChart(c);}catch(e){}
+  const ming=chart?chart.palaces.find(p=>p.name==="命宮"):null;
+  const sum=chart?"命宮在"+ming.earthlyBranch+"，主星"+(ming.majorStars.map(s=>s.name).join("、")||"無（空宮）")+"，"+chart.fiveElementsClass+"。":"還沒有出生時辰，無法排盤。確認時辰後請按「修改資料」補上。";
+  // 修改資料表單
+  const inp=(id,val,attrs)=>h("input",Object.assign({type:"text",id:id,value:val==null?"":String(val)},attrs||{}));
+  const sel=(id,opts,val)=>h("select",{id:id},opts.map(o=>h("option",{value:o[0],selected:String(o[0])===String(val)},o[1])));
+  const form=h("form",{class:"edit",hidden:true,novalidate:true,onsubmit:ev=>{ev.preventDefault();
+    patch({fields:{name:$("eName").value,gender:$("eGender").value,cal:$("eCal").value,y:+$("eY").value,m:+$("eM").value,d:+$("eD").value,leap:$("eLeap").checked,t:+$("eT").value,phone:$("ePhone").value,email:$("eEmail").value,line:$("eLine").value}});}},
+    h("label",{class:"f"},h("span",null,"姓名或暱稱"),inp("eName",c.name,{maxlength:30})),
+    h("label",{class:"f"},h("span",null,"性別"),sel("eGender",[["男","男"],["女","女"]],c.gender)),
+    h("label",{class:"f"},h("span",null,"曆法"),sel("eCal",[["solar","國曆"],["lunar","農曆"]],c.cal)),
+    h("div",{class:"row3"},inp("eY",c.y,{inputmode:"numeric","aria-label":"年"}),inp("eM",c.m,{inputmode:"numeric","aria-label":"月"}),inp("eD",c.d,{inputmode:"numeric","aria-label":"日"})),
+    h("label",{class:"check"},h("input",{type:"checkbox",id:"eLeap",checked:!!c.leap}),h("span",null,"農曆閏月")),
+    h("label",{class:"f"},h("span",null,"出生時辰"),sel("eT",TIMES.map((t,i)=>[i,t]).concat([[-1,"不確定出生時間"]]),c.t)),
+    h("label",{class:"f"},h("span",null,"手機"),inp("ePhone",c.phone,{inputmode:"tel"})),
+    h("label",{class:"f"},h("span",null,"Email"),inp("eEmail",c.email)),
+    h("label",{class:"f"},h("span",null,"LINE ID"),inp("eLine",c.line)),
+    h("div",{class:"acts"},h("button",{class:"primary",style:"min-height:48px;padding:10px 22px"},"儲存修改"),h("button",{type:"button",class:"link",onclick:()=>{form.hidden=true;editBtn.hidden=false;}},"取消")));
+  const editBtn=h("button",{class:"ghost",onclick:()=>{form.hidden=false;editBtn.hidden=true;}},"修改資料");
+  const want=(k,label)=>h("label",{class:"check",style:"color:var(--ink);align-items:center"},h("input",{type:"checkbox",checked:!!c[k],onchange:e=>patch({[k]:e.target.checked})}),h("span",null,label));
+  const noteBox=h("textarea",{id:"noteBody",maxlength:5000,placeholder:"寫下聯絡經過、對方的狀況或後續要追蹤的事","aria-label":"新增備註"});
+  const del=h("button",{class:"link",style:"color:var(--red)",onclick:async()=>{
+    if(!del.dataset.arm){del.dataset.arm="1";del.textContent="再點一次確認刪除，刪除後無法復原";setTimeout(()=>{delete del.dataset.arm;del.textContent="刪除這位客戶";},5000);return;}
+    try{await api("/api/client?id="+c.id,{method:"DELETE"});backToList();}catch(e){fail("刪除沒有成功，請再試一次。");}}},"刪除這位客戶");
+  v.replaceChildren(
+    h("p",null,h("button",{class:"link",onclick:backToList},"回到名單")),
+    h("h2",{class:"cname"},c.name+"　",h("span",null,c.gender)),
+    msg,
+    h("section",{class:"panel"},h("h3",null,"命盤"),h("p",null,birth(c)+"　"+hour(c)),h("p",{class:"small"},sum),
+      h("p",null,h("button",{class:"ghost",onclick:()=>showChart(c,chart,true,true)},chart?"看命盤":"看說明"))),
+    h("section",{class:"panel"},h("h3",null,"聯絡方式"),
+      h("dl",{class:"info"},h("dt",null,"手機"),h("dd",null,c.phone||"未填"),h("dt",null,"Email"),h("dd",null,c.email||"未填"),h("dt",null,"LINE ID"),h("dd",null,c.line||"未填"),
+        h("dt",null,"場次"),h("dd",null,c.session||"未標記"),h("dt",null,"填寫時間"),h("dd",null,fmt(c.createdAt))),
+      editBtn,form),
+    h("section",{class:"panel"},h("h3",null,"需求與處理"),
+      want("wantDetail","本命命盤與十二宮位全解析"),want("wantYearly","十年大限與流年運勢規劃"),want("wantMonthly","流月詳批與短期節奏提醒"),
+      h("div",{class:"two"},
+        h("label",{class:"f"},h("span",null,"處理狀態"),h("select",{onchange:e=>patch({status:e.target.value})},STATUS.map(x=>h("option",{selected:x===c.status},x)))),
+        h("label",{class:"f"},h("span",null,"處理人"),h("select",{onchange:e=>patch({assignee:e.target.value})},h("option",{value:""},"未指派"),(data.admins||[]).map(a=>h("option",{value:a,selected:a===c.assignee},a)))))),
+    h("section",{class:"panel"},h("h3",null,"備註"),noteBox,
+      h("p",null,h("button",{class:"ghost",onclick:async()=>{const body=noteBox.value.trim();if(!body)return fail("請先寫備註內容。");msg.hidden=true;
+        try{renderClient(await api("/api/client",{method:"POST",body:JSON.stringify({id:c.id,action:"note",body:body})}));}catch(e){fail("備註沒有存成功，請再試一次。");}}},"新增備註")),
+      data.notes.length?data.notes.map(n=>{
+        const nd=h("button",{class:"link",onclick:async()=>{if(!nd.dataset.arm){nd.dataset.arm="1";nd.textContent="再點一次確認";setTimeout(()=>{delete nd.dataset.arm;nd.textContent="刪除";},4000);return;}
+          try{renderClient(await api("/api/client",{method:"POST",body:JSON.stringify({id:c.id,action:"note_delete",noteId:n.id})}));}catch(e){fail("備註沒有刪除成功。");}}},"刪除");
+        return h("div",{class:"noteitem"},h("p",{class:"small"},fmt(n.createdAt)+"　"+n.author+"　",nd),h("p",{class:"nbody"},n.body));})
+        :h("p",{class:"small"},"還沒有備註。")),
+    h("section",{class:"panel"},h("h3",null,"紀錄"),
+      h("ul",{class:"log"},data.audit.map(a=>h("li",null,h("span",null,fmt(a.at)),h("span",null,a.actor),h("span",null,a.detail?(ACT[a.action]?ACT[a.action]+"："+a.detail:a.detail):(ACT[a.action]||a.action))))),
+      h("p",{class:"small"},"顯示最近 60 筆。每次查看、修改、備註都會記錄。")),
+    h("p",{style:"margin-top:20px"},del));
+}
 $("csvBtn").addEventListener("click",async()=>{
   const q=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-  const csv=[["姓名","性別","生日","時辰","手機","Email","LINE ID","場次","本命全解析","大限流年規劃","流月詳批","狀態","填寫時間"].map(q).join(",")]
-    .concat(rows.map(r=>[r.name,r.gender,birth(r),hour(r),r.phone,r.email,r.line,r.session,r.wantDetail?"是":"",r.wantYearly?"是":"",r.wantMonthly?"是":"",r.status,r.createdAt].map(q).join(","))).join("\n");
+  const csv=[["姓名","性別","生日","時辰","手機","Email","LINE ID","場次","本命全解析","大限流年規劃","流月詳批","狀態","處理人","填寫時間"].map(q).join(",")]
+    .concat(filtered().map(r=>[r.name,r.gender,birth(r),hour(r),r.phone,r.email,r.line,r.session,r.wantDetail?"是":"",r.wantYearly?"是":"",r.wantMonthly?"是":"",r.status,r.assignee||"",r.createdAt].map(q).join(","))).join("\n");
   const a=h("a",{href:URL.createObjectURL(new Blob(["\ufeff"+csv],{type:"text/csv"})),download:"guji-ziwei-leads.csv"});
   document.body.append(a);a.click();a.remove();
+  if(dbMode)api("/api/admin",{method:"POST",body:JSON.stringify({action:"log_export"})}).catch(()=>{});
 });
 })();
 </script>

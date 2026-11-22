@@ -1,7 +1,9 @@
 // POST：聽眾送出資料（公開）。GET：管理者讀取全部名單。
-import { writeJson, listPaths, readMany } from "../lib/store.js";
+import { writeJson } from "../lib/store.js";
 import { currentAdmin } from "../lib/auth.js";
-import { cleanLead, newId, STATUS } from "../lib/leads.js";
+import { cleanLead, newId } from "../lib/leads.js";
+import { hasDb, sql, toClient, insertClient, audit } from "../lib/db.js";
+import { legacyRows } from "../lib/legacy.js";
 
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
@@ -12,30 +14,20 @@ export default async function handler(req, res) {
       const lead = cleanLead(b);
       if (!lead) return res.status(400).json({ error: "invalid" });
       const id = newId();
-      await writeJson(`leads/${id}.json`, { ...lead, createdAt: new Date().toISOString(), consentAt: new Date().toISOString() });
+      if (hasDb()) {
+        await insertClient(id, lead);
+        await audit("客戶本人", "create", lead.session ? "場次 " + lead.session : "", { id, name: lead.name });
+      } else {
+        await writeJson(`leads/${id}.json`, { ...lead, createdAt: new Date().toISOString(), consentAt: new Date().toISOString() });
+      }
       return res.status(200).json({ id });
     }
     if (req.method === "GET") {
       if (!currentAdmin(req)) return res.status(401).json({ error: "unauthorized" });
-      const [leadPaths, updPaths] = await Promise.all([listPaths("leads/"), listPaths("upd/")]);
-      const [leads, upds] = await Promise.all([readMany(leadPaths), readMany(updPaths)]);
-      const map = new Map();
-      leadPaths.forEach((p, i) => {
-        if (!leads[i]) return;
-        const id = p.slice(6, -5);
-        map.set(id, { id, status: STATUS[0], wantDetail: false, wantYearly: false, wantMonthly: false, ...leads[i] });
-      });
-      updPaths.forEach((p, i) => { // 路徑以時間開頭，排序後依序套用
-        const row = map.get(p.split("/")[1]);
-        const u = upds[i];
-        if (!row || !u) return;
-        if (STATUS.includes(u.status)) row.status = u.status;
-        if (u.wantDetail === true) row.wantDetail = true;
-        if (u.wantYearly === true) row.wantYearly = true;
-        if (u.wantMonthly === true) row.wantMonthly = true;
-      });
-      const rows = [...map.values()].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
-      return res.status(200).json({ leads: rows });
+      if (!hasDb()) return res.status(200).json({ leads: await legacyRows(), db: false });
+      const rows = await sql(
+        `select c.*, (select count(*)::int from notes n where n.client_id=c.id) as note_count from clients c order by c.created_at desc`);
+      return res.status(200).json({ leads: rows.map((r) => ({ ...toClient(r), noteCount: r.note_count })), db: true });
     }
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "method" });
