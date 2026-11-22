@@ -190,6 +190,13 @@ textarea{width:100%;height:140px;font:13px/1.4 var(--sans)}
 .edit{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
 #clientView textarea{height:110px;font:inherit;color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:block;margin-bottom:10px}
 .noteitem{border-top:1px solid var(--line);padding:12px 0 2px}
+.nbody.clamp{max-height:13.6em;overflow:hidden;-webkit-mask-image:linear-gradient(#000 70%,transparent);mask-image:linear-gradient(#000 70%,transparent)}
+.sedit{margin:10px 0 16px}
+.sedit .two{margin:0 0 10px}
+.sedit input[type=date]{width:100%;font:inherit;color:var(--ink);background:var(--white);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-height:54px}
+#clientView textarea.sbody{height:260px}
+.shead{margin:0 0 2px!important;font-size:17px}
+#clientView .panel .acts{margin-top:4px}
 .noteitem .nbody{white-space:pre-wrap;overflow-wrap:anywhere}
 .log{list-style:none;margin:0 0 10px;padding:0;font-size:13px}
 .log li{display:grid;grid-template-columns:auto 1fr;gap:0 10px;padding:8px 0;border-top:1px solid var(--line)}
@@ -794,9 +801,145 @@ function renderClients(){
     h("div",null,chips(r)),
     h("dl",null,h("dt",null,"生辰"),h("dd",null,birth(r)+"　"+hour(r)),h("dt",null,"手機"),h("dd",null,String(r.phone||"")),
       h("dt",null,"場次"),h("dd",null,String(r.session||"未標記")),
-      h("dt",null,"狀態"),h("dd",null,r.status+"　處理人："+(r.assignee||"未指派")+(r.noteCount?"　備註 "+r.noteCount+" 則":"")),
+      h("dt",null,"狀態"),h("dd",null,r.status+"　處理人："+(r.assignee||"未指派")+(r.sessionCount?"　訪談 "+r.sessionCount+" 筆":"")+(r.noteCount?"　備註 "+r.noteCount+" 則":"")),
       h("dt",null,"填寫時間"),h("dd",null,fmt(r.createdAt))),
     h("div",{class:"acts"},h("button",{class:"ghost",onclick:()=>openClient(r.id)},"開啟檔案")))));
+}
+/* ---------- 訪談紀錄 ---------- */
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+function sessionPanel(data,fail,msg){
+  const c=data.client,kinds=data.kinds||["命盤解析","流年","其他"];
+  const post=async body=>{msg.hidden=true;try{renderClient(await api("/api/client",{method:"POST",body:JSON.stringify(Object.assign({id:c.id},body))}));return true;}catch(e){fail("訪談紀錄沒有存成功，請檢查日期與內容後再試一次。");return false;}};
+  const editor=(s0,onDone)=>{
+    const d=h("input",{type:"date",value:s0?s0.date:today(),"aria-label":"訪談日期"}),k=h("select",{"aria-label":"訪談類型"},kinds.map(x=>h("option",{selected:s0?x===s0.kind:false},x)));
+    const t=h("textarea",{class:"sbody",maxlength:50000,placeholder:"貼上整理好的訪談內容","aria-label":"訪談內文"});t.value=s0?s0.body:"";
+    return h("div",{class:"sedit"},h("div",{class:"two"},h("label",{class:"f"},h("span",null,"訪談日期"),d),h("label",{class:"f"},h("span",null,"類型"),k)),t,
+      h("div",{class:"acts"},h("button",{class:"ghost",onclick:async()=>{
+          if(!d.value)return fail("請選訪談日期。");if(!t.value.trim())return fail("請先貼上訪談內容。");
+          await post(s0?{action:"session_edit",sessionId:s0.id,date:d.value,kind:k.value,body:t.value}:{action:"session_add",date:d.value,kind:k.value,body:t.value});}},s0?"儲存修改":"新增訪談紀錄"),
+        onDone?h("button",{type:"button",class:"link",onclick:onDone},"取消"):null));};
+  const items=(data.sessions||[]).map(s1=>{
+    const view=h("div",null),edit=h("div",{hidden:true});
+    const del=h("button",{class:"link",onclick:async()=>{if(!del.dataset.arm){del.dataset.arm="1";del.textContent="再點一次確認刪除";setTimeout(()=>{delete del.dataset.arm;del.textContent="刪除";},4000);return;}
+      await post({action:"session_delete",sessionId:s1.id});}},"刪除");
+    view.append(h("p",{class:"shead"},h("strong",null,s1.date.replace(/-/g,"/")+"　"+s1.kind)),
+      h("p",{class:"small"},"記錄人 "+s1.author+(s1.updatedBy&&s1.updatedAt!==s1.createdAt?"　最後修改 "+fmt(s1.updatedAt)+" "+s1.updatedBy:"")+"　",
+        h("button",{class:"link",onclick:()=>{edit.replaceChildren(editor(s1,()=>{edit.hidden=true;view.hidden=false;}));edit.hidden=false;view.hidden=true;}},"修改"),"　",del),
+      (()=>{const long=s1.body.length>320||s1.body.split("\n").length>9,body=h("p",{class:"nbody"+(long?" clamp":"")},s1.body);
+        if(!long)return body;
+        const tg=h("button",{class:"link",onclick:()=>{const open=body.classList.toggle("clamp");tg.textContent=open?"展開全文":"收合";}},"展開全文");
+        return [body,h("p",null,tg)];})());
+    return h("div",{class:"noteitem"},view,edit);});
+  return h("section",{class:"panel"},h("h3",null,"訪談紀錄"),
+    h("p",{class:"small"},"貼上在 ChatGPT 整理好的內容。這裡的紀錄會放進匯出的 PDF；下面的「備註」只留在後台。"),
+    editor(null,null),
+    items.length?items:h("p",{class:"small",style:"margin-top:12px"},"還沒有訪談紀錄。"));
+}
+/* ---------- 匯出：命盤＋訪談紀錄（A4 多頁 PDF） ---------- */
+async function exportClientPdf(data,chart){
+  if(document.fonts&&document.fonts.ready)await document.fonts.ready;
+  const c=data.client,PW=1240,PH=1754,M=80,CW=PW-2*M;
+  const C={ink:"#263C47",muted:"#536B76",primary:"#527482",line:"#D8E3E7",tint:"#EAF2F5",white:"#FFFFFF"};
+  const FF="'Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif";
+  const d=new Date(),ymd=d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
+  const docNo="GZ-"+ymd+"-"+String(c.id).slice(-4).toUpperCase();
+  const mctx=document.createElement("canvas").getContext("2d");
+  const wrap=(text,font,maxW)=>{mctx.font=font;const out=[];
+    for(const para of String(text).replace(/\r/g,"").split("\n")){
+      if(!para.trim()){out.push("");continue;}
+      let line="";
+      for(const tok of para.match(/[A-Za-z0-9@._:\/#%&+=~-]+|\s+|[\s\S]/g)||[]){
+        if(mctx.measureText(line+tok).width>maxW&&line){out.push(line);line=/^\s+$/.test(tok)?"":tok;}
+        else line+=tok;
+        while(mctx.measureText(line).width>maxW){let n=line.length-1;while(n>1&&mctx.measureText(line.slice(0,n)).width>maxW)n--;out.push(line.slice(0,n));line=line.slice(n);}
+      }
+      out.push(line);}
+    return out;};
+  // 先排版成「頁 → 繪圖指令」，知道總頁數後再畫，表頭才能印出「第 x 頁，共 n 頁」
+  const pages=[[]],TOP=190,BOT=PH-120;let y=TOP;
+  const put=op=>pages[pages.length-1].push(op);
+  const newPage=()=>{pages.push([]);y=TOP;};
+  // 第一頁：客戶資料區 + 命盤
+  const info=[["姓名",c.name],["性別",c.gender],["五行局",chart?chart.fiveElementsClass:"尚未排盤"],
+    ["國曆",chart?chart.solarDate+" "+chart.time:birth(c)],["農曆",chart?chart.lunarDate:"—"],["命主",chart?chart.soul:"—"],
+    ["身主",chart?chart.body:"—"],["製表日期",d.toLocaleDateString("zh-TW")],["製表人",me||"—"]];
+  put({t:"rect",x:M,y:y,w:CW,h:168,fill:C.tint});
+  info.forEach((kv,i)=>{const col=i%3,row=Math.floor(i/3),x=M+28+col*(CW/3),yy=y+52+row*46;
+    put({t:"text",x:x,y:yy,text:kv[0],font:"400 20px "+FF,color:C.muted});put({t:"text",x:x+(kv[0].length>2?100:60),y:yy,text:String(kv[1]),font:"500 22px "+FF,color:C.ink});});
+  y+=168+26;
+  if(chart){
+    const keepC=current,keepV=view;current={rec:c,chart:chart};view={mode:"natal",year:now,dec:0,birth:true,sel:0};
+    let cv;try{cv=drawChartCanvas();}finally{current=keepC;view=keepV;}
+    const sx=38,sy=148,sw=1524,sh=480*4+4,dw=CW,dh=Math.round(dw*sh/sw),fit=Math.min(1,(BOT-y)/dh);
+    put({t:"img",img:cv,sx:sx,sy:sy,sw:sw,sh:sh,x:M+(dw-dw*fit)/2,y:y,w:dw*fit,h:dh*fit});
+  }else{
+    put({t:"text",x:M,y:y+40,text:"尚未提供出生時辰，無法排出命盤。",font:"400 26px "+FF,color:C.muted});
+  }
+  // 訪談紀錄：依日期由舊到新
+  const list=(data.sessions||[]).slice().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:a.id-b.id);
+  const bodyFont="400 24px "+FF,headFont="700 25px "+FF,LH=40;
+  if(list.length){
+    newPage();
+    put({t:"text",x:M,y:y+10,text:"訪談紀錄",font:"300 44px "+FF,color:C.ink});y+=64;
+    list.forEach((s1,idx)=>{
+      if(y+150>BOT)newPage();
+      if(idx>0)y+=20;
+      put({t:"rect",x:M,y:y,w:CW,h:58,fill:C.tint});put({t:"rect",x:M,y:y,w:8,h:58,fill:C.primary});
+      put({t:"text",x:M+26,y:y+39,text:s1.date.replace(/-/g,"/")+"　"+s1.kind,font:"700 26px "+FF,color:C.ink});
+      put({t:"text",x:M+CW-18,y:y+38,text:"記錄人 "+s1.author,font:"400 19px "+FF,color:C.muted,align:"right"});
+      y+=58+30;
+      for(const ln of wrap(s1.body,bodyFont,CW-8)){
+        if(y+LH>BOT)newPage();
+        const isHead=/^\s*[一二三四五六七八九十]+、/.test(ln);
+        if(isHead&&y>TOP+10)y+=10;
+        if(ln)put({t:"text",x:M+4,y:y+26,text:ln,font:isHead?headFont:bodyFont,color:isHead?C.primary:C.ink});
+        y+=ln?LH:LH*0.55;
+      }
+      y+=16;
+    });
+  }
+  const total=pages.length,canvases=pages.map((ops,pi)=>{
+    const cv=document.createElement("canvas");cv.width=PW;cv.height=PH;const g=cv.getContext("2d");
+    g.fillStyle=C.white;g.fillRect(0,0,PW,PH);g.textBaseline="alphabetic";
+    const T=(text,x,yy,font,color,align)=>{g.font=font;g.fillStyle=color;g.textAlign=align||"left";g.fillText(text,x,yy);};
+    T("谷吉爸紫微",M,86,"700 34px "+FF,C.ink);
+    T("命盤與訪談紀錄｜"+c.name,M,128,"400 22px "+FF,C.muted);
+    T("文件編號 "+docNo,PW-M,84,"400 20px "+FF,C.muted,"right");
+    T("第 "+(pi+1)+" 頁，共 "+total+" 頁",PW-M,126,"400 20px "+FF,C.muted,"right");
+    g.fillStyle=C.primary;g.fillRect(M,150,CW,3);
+    for(const op of ops){
+      if(op.t==="rect"){g.fillStyle=op.fill;g.fillRect(op.x,op.y,op.w,op.h);}
+      else if(op.t==="text")T(op.text,op.x,op.y,op.font,op.color,op.align);
+      else if(op.t==="img"){g.drawImage(op.img,op.sx,op.sy,op.sw,op.sh,op.x,op.y,op.w,op.h);}
+    }
+    g.fillStyle=C.line;g.fillRect(M,PH-96,CW,2);
+    T("僅供當事人與谷吉爸紫微使用，請勿轉傳。命理分析僅供參考，不能取代醫療、法律或財務等專業意見。",M,PH-62,"400 18px "+FF,C.muted);
+    T(location.host,M,PH-34,"400 18px "+FF,C.muted);
+    return cv;});
+  const blob=await pdfPages(canvases,595.28,841.89);
+  saveBlob(blob,"谷吉爸紫微-命盤與訪談紀錄-"+String(c.name||"").replace(/[\\/:*?"<>|\s]+/g,"_")+".pdf");
+  api("/api/client",{method:"POST",body:JSON.stringify({id:c.id,action:"log_export"})}).catch(()=>{});
+}
+// 多頁 PDF：每頁放一張 JPEG
+async function pdfPages(canvases,pw,ph){
+  const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+  const put=x=>{const u=typeof x==="string"?enc.encode(x):x;parts.push(u);len+=u.length;};
+  const obj=(n,body)=>{offs[n]=len;put(n+" 0 obj\n"+body+"\nendobj\n");};
+  const n=canvases.length,kids=canvases.map((_,i)=>(3+i*3)+" 0 R").join(" ");
+  put("%PDF-1.4\n");
+  obj(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  obj(2,"<< /Type /Pages /Kids ["+kids+"] /Count "+n+" >>");
+  for(let i=0;i<n;i++){
+    const cv=canvases[i],jpg=new Uint8Array(await (await jpegOf(cv)).arrayBuffer()),po=3+i*3,io=po+1,co=po+2;
+    obj(po,"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pw+" "+ph+"] /Resources << /XObject << /Im0 "+io+" 0 R >> >> /Contents "+co+" 0 R >>");
+    offs[io]=len;put(io+" 0 obj\n<< /Type /XObject /Subtype /Image /Width "+cv.width+" /Height "+cv.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+jpg.length+" >>\nstream\n");put(jpg);put("\nendstream\nendobj\n");
+    const cs="q "+pw+" 0 0 "+ph+" 0 0 cm /Im0 Do Q";
+    obj(co,"<< /Length "+cs.length+" >>\nstream\n"+cs+"\nendstream");
+  }
+  const count=3+n*3,xref=len;
+  let x="xref\n0 "+count+"\n0000000000 65535 f \n";for(let k=1;k<count;k++)x+=String(offs[k]).padStart(10,"0")+" 00000 n \n";
+  put(x+"trailer\n<< /Size "+count+" /Root 1 0 R >>\nstartxref\n"+xref+"\n%%EOF\n");
+  return new Blob(parts,{type:"application/pdf"});
 }
 /* ---------- 客戶檔案 ---------- */
 const ACT={view:"查看檔案",create:"填寫資料",delete:"刪除客戶檔案"};
@@ -840,7 +983,10 @@ function renderClient(data){
     h("h2",{class:"cname"},c.name+"　",h("span",null,c.gender)),
     msg,
     h("section",{class:"panel"},h("h3",null,"命盤"),h("p",null,birth(c)+"　"+hour(c)),h("p",{class:"small"},sum),
-      h("p",null,h("button",{class:"ghost",onclick:()=>showChart(c,chart,true,true)},chart?"看命盤":"看說明"))),
+      h("div",{class:"acts"},h("button",{class:"ghost",onclick:()=>showChart(c,chart,true,true)},chart?"看命盤":"看說明"),
+        (()=>{const b=h("button",{class:"ghost",onclick:async()=>{b.disabled=true;const t=b.textContent;b.textContent="製作中…";msg.hidden=true;
+          try{await exportClientPdf(data,chart);}catch(e){fail("PDF 沒有製作成功，請再試一次。");}
+          b.disabled=false;b.textContent=t;}},"匯出命盤與訪談紀錄 PDF");return b;})())),
     h("section",{class:"panel"},h("h3",null,"聯絡方式"),
       h("dl",{class:"info"},h("dt",null,"手機"),h("dd",null,c.phone||"未填"),h("dt",null,"Email"),h("dd",null,c.email||"未填"),h("dt",null,"LINE ID"),h("dd",null,c.line||"未填"),
         h("dt",null,"場次"),h("dd",null,c.session||"未標記"),h("dt",null,"填寫時間"),h("dd",null,fmt(c.createdAt))),
@@ -850,6 +996,7 @@ function renderClient(data){
       h("div",{class:"two"},
         h("label",{class:"f"},h("span",null,"處理狀態"),h("select",{onchange:e=>patch({status:e.target.value})},STATUS.map(x=>h("option",{selected:x===c.status},x)))),
         h("label",{class:"f"},h("span",null,"處理人"),h("select",{onchange:e=>patch({assignee:e.target.value})},h("option",{value:""},"未指派"),(data.admins||[]).map(a=>h("option",{value:a,selected:a===c.assignee},a)))))),
+    sessionPanel(data,fail,msg),
     h("section",{class:"panel"},h("h3",null,"備註"),noteBox,
       h("p",null,h("button",{class:"ghost",onclick:async()=>{const body=noteBox.value.trim();if(!body)return fail("請先寫備註內容。");msg.hidden=true;
         try{renderClient(await api("/api/client",{method:"POST",body:JSON.stringify({id:c.id,action:"note",body:body})}));}catch(e){fail("備註沒有存成功，請再試一次。");}}},"新增備註")),

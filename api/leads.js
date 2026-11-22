@@ -26,8 +26,9 @@ export default async function handler(req, res) {
       if (!currentAdmin(req)) return res.status(401).json({ error: "unauthorized" });
       if (!hasDb()) return res.status(200).json({ leads: await legacyRows(), db: false });
       const rows = await sql(
-        `select c.*, (select count(*)::int from notes n where n.client_id=c.id) as note_count from clients c order by c.created_at desc`);
-      return res.status(200).json({ leads: rows.map((r) => ({ ...toClient(r), noteCount: r.note_count })), db: true });
+        `select c.*, (select count(*)::int from notes n where n.client_id=c.id) as note_count,
+          (select count(*)::int from sessions s where s.client_id=c.id) as session_count from clients c order by c.created_at desc`);
+      return res.status(200).json({ leads: rows.map((r) => ({ ...toClient(r), noteCount: r.note_count, sessionCount: r.session_count })), db: true });
     }
     res.setHeader("Allow", "GET, POST");
     return res.status(405).json({ error: "method" });
